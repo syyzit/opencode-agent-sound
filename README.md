@@ -24,11 +24,12 @@ Or clone it into your global plugin directory:
 
 ```sh
 git clone https://github.com/syyzit/opencode-agent-sound.git \
-  ~/.config/opencode/plugins/agent-sound
+  ~/.config/opencode/plugins/opencode-agent-sound
 ```
 
 OpenCode discovers plugin directories under `~/.config/opencode/plugins/`
-automatically.
+automatically. If you already have a local copy of this plugin installed,
+remove it first so two copies do not play sounds at the same time.
 
 ## Add sounds
 
