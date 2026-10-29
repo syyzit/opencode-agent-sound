@@ -53,6 +53,11 @@ mkdir -p ~/.config/opencode/sounds/{agent,permissions,errors}
 Supported extensions: `.mp3`, `.wav`, `.m4a`, `.aac`, `.ogg`, `.flac`, `.aiff`,
 `.aif`.
 
+macOS `afplay` handles the common formats. If `ffplay` (from
+[ffmpeg](https://ffmpeg.org)) is installed, it is used for `.ogg` and `.flac`
+and as a fallback for anything `afplay` cannot decode. Without ffmpeg, some
+OGG/FLAC files may stay silent.
+
 If `agent/` is empty, audio files directly in `~/.config/opencode/sounds/` are
 used as a fallback.
 
@@ -78,7 +83,8 @@ value can be a file or a directory; `~/` is expanded.
       "options": {
         "agent": "~/Music/agent-sounds",
         "permissions": "~/Music/permission.wav",
-        "errors": "~/Music/errors"
+        "errors": "~/Music/errors",
+        "volume": 0.6
       }
     }
   ]
@@ -87,9 +93,12 @@ value can be a file or a directory; `~/` is expanded.
 
 Without options, the default folders above are used.
 
+`volume` is a number from `0` to `1` and defaults to `1`.
+
 ## Behaviour
 
 - Sounds play one at a time, with a 3 second cooldown.
+- Volume comes from the `volume` option (`0`–`1`, default `1`).
 - Subagent completions are ignored. Permission requests and errors from
   subagents still play.
 - Events replayed from the server's recent-event buffer are ignored.

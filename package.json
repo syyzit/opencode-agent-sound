@@ -1,6 +1,6 @@
 {
   "name": "opencode-agent-sound",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Custom completion, permission, and error sounds for OpenCode Desktop (macOS).",
   "type": "module",
   "exports": {

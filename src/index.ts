@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process"
+import { spawn, spawnSync } from "node:child_process"
 import { existsSync, readdirSync, statSync } from "node:fs"
 import { homedir } from "node:os"
 import { extname, join } from "node:path"
@@ -42,6 +42,10 @@ const AUDIO_EXTENSIONS = new Set([
   ".aif",
 ])
 
+// afplay handles the common formats on macOS. ffplay is preferred for these
+// and used as a fallback when installed.
+const FFPLAY_EXTENSIONS = new Set([".ogg", ".flac"])
+
 // Do not stack sounds: one at a time, and no more than one every few seconds.
 const COOLDOWN_MS = 3000
 
@@ -55,6 +59,15 @@ const state = globalThis as typeof globalThis & {
 // Several plugin instances can receive the same event, so IDs are shared.
 const seen = (state.__agentSoundSeen ??= new Set<string>())
 const lastPlayed = (state.__agentSoundLastPlayed ??= {})
+
+let ffplayAvailable: boolean | undefined
+
+function hasFfplay() {
+  if (ffplayAvailable === undefined) {
+    ffplayAvailable = spawnSync("which", ["ffplay"], { stdio: "ignore" }).status === 0
+  }
+  return ffplayAvailable
+}
 
 function expandHome(path: string) {
   if (path === "~") return homedir()
@@ -104,7 +117,61 @@ function pick(kind: SoundKind, target: string): string | undefined {
   return chosen
 }
 
-function play(kind: SoundKind, target: string) {
+function clampVolume(value: unknown) {
+  const parsed =
+    typeof value === "number" ? value : typeof value === "string" ? Number(value) : 1
+
+  if (!Number.isFinite(parsed)) return 1
+  return Math.min(1, Math.max(0, parsed))
+}
+
+function argsFor(command: "afplay" | "ffplay", file: string, volume: number) {
+  if (command === "afplay") return ["-v", volume.toFixed(2), file]
+  return [
+    "-nodisp",
+    "-autoexit",
+    "-loglevel",
+    "quiet",
+    "-volume",
+    String(Math.round(volume * 100)),
+    file,
+  ]
+}
+
+function playFile(file: string, volume: number) {
+  const preferFfplay = FFPLAY_EXTENSIONS.has(extname(file).toLowerCase()) && hasFfplay()
+  const order: Array<"afplay" | "ffplay"> = preferFfplay ? ["ffplay", "afplay"] : ["afplay"]
+  if (!preferFfplay && hasFfplay()) order.push("ffplay")
+
+  const done = () => {
+    state.__agentSoundPlaying = false
+  }
+
+  const attempt = (index: number) => {
+    const command = order[index]
+    if (!command) return done()
+
+    let settled = false
+    const fail = () => {
+      if (settled) return
+      settled = true
+      attempt(index + 1)
+    }
+    const ok = () => {
+      if (settled) return
+      settled = true
+      done()
+    }
+
+    const child = spawn(command, argsFor(command, file, volume), { stdio: "ignore" })
+    child.once("error", fail)
+    child.once("exit", (code) => (code === 0 ? ok() : fail()))
+  }
+
+  attempt(0)
+}
+
+function play(kind: SoundKind, target: string, volume: number) {
   if (process.platform !== "darwin") return
 
   const now = Date.now()
@@ -118,13 +185,7 @@ function play(kind: SoundKind, target: string) {
   state.__agentSoundLast = now
   state.__agentSoundPlaying = true
 
-  const done = () => {
-    state.__agentSoundPlaying = false
-  }
-
-  const child = spawn("afplay", [file], { stdio: "ignore" })
-  child.once("error", done)
-  child.once("exit", done)
+  playFile(file, volume)
 }
 
 function optionPath(options: Record<string, unknown>, key: SoundKind) {
@@ -141,6 +202,7 @@ export default Plugin.define({
       permissions: optionPath(options, "permissions"),
       errors: optionPath(options, "errors"),
     }
+    const volume = clampVolume(options.volume)
     const controller = new AbortController()
 
     void (async () => {
@@ -171,7 +233,7 @@ export default Plugin.define({
             } catch {}
           }
 
-          play(kind, targets[kind])
+          play(kind, targets[kind], volume)
         }
       } catch (error) {
         if (!controller.signal.aborted) console.error("agent-sound:", error)
