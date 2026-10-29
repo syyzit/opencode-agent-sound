@@ -1,6 +1,7 @@
 # opencode-agent-sound
 
-Custom sounds for [OpenCode](https://opencode.ai) when an agent:
+Custom sounds for [OpenCode Desktop](https://opencode.ai) on macOS when an
+agent:
 
 - finishes a turn
 - asks for permission
@@ -9,8 +10,14 @@ Custom sounds for [OpenCode](https://opencode.ai) when an agent:
 Each event uses its own folder of sounds. If a folder has more than one file, one
 is picked at random and the same file is not played twice in a row.
 
-> **Platform:** macOS only. Playback uses the built-in `afplay` command.
-> Sound files are not included in this repository.
+> **Platform:** macOS only. This is a server plugin, so sounds play on the
+> machine running the OpenCode server. A remote or non-macOS server will not
+> produce audio. Playback uses the built-in `afplay` command.
+
+> **Using the TUI?** OpenCode already supports custom sounds through `cli.json`
+> (`attention.sounds`). This plugin is mainly for OpenCode Desktop.
+
+Sound files are not included in this repository.
 
 ## Install
 
@@ -51,8 +58,8 @@ used as a fallback.
 
 ## Turn off the built-in sounds
 
-OpenCode Desktop has its own Agent, Permissions, and Errors sounds. To hear only
-your files, set all three to **None**:
+OpenCode Desktop has built-in Agent, Permissions, and Errors sounds. To hear
+only your files, set all three to **None**:
 
 **Settings → General → Sounds → Agent / Permissions / Errors → None**
 
