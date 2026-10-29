@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.DS_Store
+
+# Never commit sound files to the plugin repository.
+*.mp3
+*.wav
+*.m4a
+*.aac
+*.ogg
+*.flac
+*.aiff
+*.aif
